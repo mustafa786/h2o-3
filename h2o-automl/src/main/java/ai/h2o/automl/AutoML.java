@@ -15,6 +15,7 @@ import hex.splitframe.ShuffleSplitFrame;
 import hex.tree.SharedTreeModel;
 import hex.tree.drf.DRFModel;
 import hex.tree.gbm.GBMModel;
+import hex.tree.xgboost.XGBoostModel;
 import water.*;
 import water.api.schemas3.KeyV3;
 import water.exceptions.H2OAbstractRuntimeException;
@@ -55,7 +56,7 @@ public final class AutoML extends Lockable<AutoML> implements TimedH2ORunnable {
     GBM,
     DeepLearning,
     StackedEnsemble,
-//    XGBoost,
+    XGBoost,
     ;
 
     String urlName() {
@@ -713,6 +714,50 @@ public final class AutoML extends Lockable<AutoML> implements TimedH2ORunnable {
     return false;
   }
 
+
+  Job<XGBoostModel> defaultXGBoost() {
+    if (!ExtensionManager.getInstance().isCoreExtensionEnabled("XGBoost")) {
+      userFeedback.warn(Stage.ModelTraining, "AutoML: GBoost extension is not available; skipping default XGBoost");
+      return null;
+    }
+    XGBoostModel.XGBoostParameters xgBoostParameters = new XGBoostModel.XGBoostParameters();
+    setCommonModelBuilderParams(xgBoostParameters);
+
+    Job xgBoostJob = trainModel(null, Algo.XGBoost, xgBoostParameters);
+    return xgBoostJob;
+  }
+
+
+  Job<Grid> defaultSearchXGBoost(Key<Grid> gridKey) {
+    if (!ExtensionManager.getInstance().isCoreExtensionEnabled("XGBoost")) {
+      userFeedback.warn(Stage.ModelTraining, "AutoML: GBoost extension is not available; skipping default XGBoost hyperparameter search");
+      return null;
+    }
+
+    XGBoostModel.XGBoostParameters xgBoostParameters = new XGBoostModel.XGBoostParameters();
+    setCommonModelBuilderParams(xgBoostParameters);
+    xgBoostParameters._score_tree_interval = 5;
+
+    Map<String, Object[]> searchParams = new HashMap<>();
+    searchParams.put("_ntrees", new Integer[]{50, 100, 150, 200});
+    searchParams.put("_max_depth", new Integer[]{3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 20});
+    searchParams.put("_min_rows", new Integer[]{1, 5, 10, 15, 30, 100});
+    searchParams.put("_learn_rate", new Double[]{0.001, 0.005, 0.008, 0.01, 0.05, 0.08, 0.1, 0.5, 0.8});
+    searchParams.put("_sample_rate", new Double[]{0.50, 0.60, 0.70, 0.80, 0.90, 1.00});
+    searchParams.put("_col_sample_rate", new Double[]{ 0.4, 0.7, 1.0});
+    searchParams.put("_col_sample_rate_per_tree", new Double[]{ 0.4, 0.7, 1.0});
+    searchParams.put("_min_split_improvement", new Double[]{1e-4, 1e-5});
+
+    searchParams.put("_eta", new Double[]{0.01, 0.05, 0.1, 0.15, 0.2, 0.3});
+    searchParams.put("_gamma", new Float[]{1e-3f, 1e-2f, 1e-1f, 1f, 1e1f});
+    searchParams.put("_reg_lambda", new Float[]{1e-3f, 1e-2f, 1e-1f, 1f, 1e1f, 1e2f, 1e3f});
+    searchParams.put("_reg_alpha", new Float[]{1e-3f, 1e-2f, 1e-1f, 1f, 1e1f, 1e2f, 1e3f});
+
+    Job<Grid> xgBoostJob = hyperparameterSearch(gridKey, Algo.GBM, xgBoostParameters, searchParams);
+    return xgBoostJob;
+  }
+
+
   Job<DRFModel> defaultRandomForest() {
     DRFModel.DRFParameters drfParameters = new DRFModel.DRFParameters();
     setCommonModelBuilderParams(drfParameters);
@@ -746,6 +791,7 @@ public final class AutoML extends Lockable<AutoML> implements TimedH2ORunnable {
 
     Map<String, Object[]> searchParams = new HashMap<>();
     searchParams.put("_ntrees", new Integer[]{10000});
+    searchParams.put("_sample_rate", new Double[]{ 0.80 });
     searchParams.put("_sample_rate", new Double[]{ 0.80 });
     searchParams.put("_col_sample_rate", new Double[]{ 0.8 });
     searchParams.put("_col_sample_rate_per_tree", new Double[]{ 0.8 });
@@ -983,6 +1029,13 @@ public final class AutoML extends Lockable<AutoML> implements TimedH2ORunnable {
 //    job.update(20, "Computed dataset metadata");
 
 //    isClassification = frameMetadata.isClassification();
+
+
+    Job<XGBoostModel> defaultXGBoostJob = defaultXGBoost();
+    pollAndUpdateProgress(Stage.ModelTraining, "Default XGBoost build", 50, this.job(), defaultXGBoostJob, JobType.ModelBuild);
+
+    Job<Grid> xgBoostSearchJob = defaultSearchXGBoost(gridKey(Algo.XGBoost.name()));
+    pollAndUpdateProgress(Stage.ModelTraining, "XGBoost hyperparameter search", 150, this.job(), xgBoostSearchJob, JobType.HyperparamSearch);
 
     ///////////////////////////////////////////////////////////
     // build a fast RF with default settings...
