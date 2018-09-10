@@ -265,13 +265,13 @@ public final class AutoML extends Lockable<AutoML> implements TimedH2ORunnable {
             .allocate(Algo.DeepLearning, 3, JobType.HyperparamSearch, 20)
             .allocate(Algo.DRF, 2, JobType.ModelBuild, 10)
             .allocate(Algo.GBM, 5, JobType.ModelBuild, 10)
-            .allocate(Algo.GBM, 1, JobType.HyperparamSearch, 100)
-            .allocate(Algo.GLM, 1, JobType.HyperparamSearch, 10)
+            .allocate(Algo.GBM, 1, JobType.HyperparamSearch, 60)
+            .allocate(Algo.GLM, 1, JobType.HyperparamSearch, 20)
 //            .allocate(Algo.LightGBM, 3, JobType.ModelBuild, 10)
 //            .allocate(Algo.LightGBM, 1, JobType.HyperparamSearch, 100)
             .allocate(Algo.XGBoost, 3, JobType.ModelBuild, 10)
             .allocate(Algo.XGBoost, 1, JobType.HyperparamSearch, 100)
-            .allocate(Algo.StackedEnsemble, 2, JobType.ModelBuild, 10)
+            .allocate(Algo.StackedEnsemble, 2, JobType.ModelBuild, 15)
             .end();
 
     if (buildSpec.build_models.exclude_algos != null) {
