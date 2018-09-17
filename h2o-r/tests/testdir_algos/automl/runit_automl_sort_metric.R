@@ -37,8 +37,7 @@ automl.leaderboard_sort_metric.test <- function() {
 
 
   # Regression:
-  # TO DO: Change this dataset
-  fr2 <- h2o.uploadFile(locate("smalldata/covtype/covtype.20k.data"))
+  fr2 <- h2o.uploadFile(locate("smalldata/extdata/australia.csv"))
   aml2 <- h2o.automl(y = 55, training_frame = fr2, max_models = 2,
                      project_name = "r_lbsm_test_aml2",
                      sort_metric = "RMSE")
