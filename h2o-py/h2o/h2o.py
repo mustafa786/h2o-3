@@ -404,8 +404,8 @@ def import_file(path=None, destination_frame=None, parse=True, header=0, sep=Non
     assert_is_type(col_names, [str], None)
     assert_is_type(col_types, [coltype], {str: coltype}, None)
     assert_is_type(na_strings, [natype], {str: natype}, None)
-    assert (skipped_columns==None) or isinstance(skipped_columns, [str]) or isinstance(skipped_columns, [int]), \
-        "The skipped_columns should be an list of column names or column indices!"
+    assert (skipped_columns==None) or isinstance(skipped_columns, list), \
+        "The skipped_columns should be an list of column names of column indices!"
     check_frame_id(destination_frame)
     patharr = path if isinstance(path, list) else [path]
     if any(os.path.split(p)[0] == "~" for p in patharr):

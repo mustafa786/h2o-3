@@ -36,6 +36,7 @@ public class ParseSetup extends Iced {
   String[] _column_names;
   byte[] _column_types;       // Column types
   int[] _skipped_columns;     // column indices that are to be skipped
+  String[] _skipped_columns_names;  // store skipped column names
   String[][] _domains;        // Domains for each column (null if numeric)
   String[][] _na_strings;       // Strings for NA in a given column
   String[][] _data;           // First few rows of parsed/tokenized data
