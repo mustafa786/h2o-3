@@ -2161,9 +2161,14 @@ final public class H2O {
 
   public static H2ONode reportClient(H2ONode client) {
     H2ONode oldClient = CLIENTS_MAP.put(client.getIpPortString(), client);
+
     if (oldClient == null) {
-        Log.info("New client discovered: " + client.toDebugString());
+      Log.info("New client discovered: " + client.toDebugString());
+    } else if (oldClient == client){ // old client just re-connected
+      removeClient(oldClient); // remove the old client entry and stop send thread for this old client
+      CLIENTS_MAP.put(client.getIpPortString(), client); // report again the same re-connected client
     }
+
     return oldClient;
   }
 
