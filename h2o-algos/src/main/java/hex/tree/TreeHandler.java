@@ -1,13 +1,20 @@
 package hex.tree;
 
 import hex.ModelCategory;
+import hex.genmodel.algos.tree.SharedTreeGraph;
 import hex.genmodel.algos.tree.SharedTreeNode;
 import hex.genmodel.algos.tree.SharedTreeSubgraph;
 import hex.schemas.TreeV3;
+import hex.tree.xgboost.XGBoostModel;
+import hex.tree.xgboost.XGBoostTreeConverter;
+import water.H2O;
 import water.Keyed;
 import water.MemoryManager;
 import water.api.Handler;
+import water.util.ArrayUtils;
+import water.util.Log;
 
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -20,16 +27,38 @@ public class TreeHandler extends Handler {
 
         final Keyed possibleModel = args.model.key().get();
         if (possibleModel == null) throw new IllegalArgumentException("Given model does not exist: " + args.model.key().toString());
-        if(! (possibleModel instanceof SharedTreeModel)){
+
+        else if (!(possibleModel instanceof SharedTreeModel) && !(possibleModel instanceof XGBoostModel)) {
             throw new IllegalArgumentException("Given model is not tree-based.");
         }
+        final SharedTreeSubgraph sharedTreeSubgraph;
+        final String modelCategory;
 
-        final SharedTreeModel model = (SharedTreeModel) possibleModel;
-        final SharedTreeModel.SharedTreeOutput sharedTreeOutput = (SharedTreeModel.SharedTreeOutput) model._output;
-        final int treeClass = getResponseLevelIndex(args.tree_class, sharedTreeOutput);
-        validateArgs(args, sharedTreeOutput, treeClass);
+        if (possibleModel instanceof XGBoostModel) {
+            final XGBoostModel xgBoostModel = (XGBoostModel) possibleModel;
+            final XGBoostTreeClass xgBoostTreeClass = getXGBoostClassIndex(xgBoostModel, args.tree_class);
+            sharedTreeSubgraph = XGBoostTreeConverter.convertXGBoostTree(xgBoostModel, args.tree_number, xgBoostTreeClass._index);
 
-        final SharedTreeSubgraph sharedTreeSubgraph = model.getSharedTreeSubgraph(args.tree_number, treeClass);
+            if (ModelCategory.Regression.equals(xgBoostModel._output.getModelCategory())) {
+                args.tree_class = null; // Class may not be provided by the user, should be always filled correctly on output. NULL for regression.
+            } else {
+                args.tree_class = xgBoostTreeClass._name;
+            }
+        } else {
+            final SharedTreeModel model = (SharedTreeModel) possibleModel;
+            final SharedTreeModel.SharedTreeOutput sharedTreeOutput = (SharedTreeModel.SharedTreeOutput) model._output;
+            final int treeClass = getResponseLevelIndex(args.tree_class, sharedTreeOutput);
+            validateArgs(args, sharedTreeOutput, treeClass);
+            sharedTreeSubgraph = model.getSharedTreeSubgraph(args.tree_number, treeClass);
+            // Class may not be provided by the user, should be always filled correctly on output. NULL for regression.
+            if (ModelCategory.Regression.equals(sharedTreeOutput.getModelCategory())) {
+                args.tree_class = null;
+            } else {
+                args.tree_class = sharedTreeOutput._domains[sharedTreeOutput.responseIdx()][treeClass];
+            }
+        }
+
+
         final TreeProperties treeProperties = convertSharedTreeSubgraph(sharedTreeSubgraph);
 
         args.left_children = treeProperties._leftChildren;
@@ -41,12 +70,6 @@ public class TreeHandler extends Handler {
         args.nas = treeProperties._nas;
         args.levels = treeProperties.levels;
         args.predictions = treeProperties._predictions;
-        // Class may not be provided by the user, should be always filled correctly on output. NULL for regression.
-        if (ModelCategory.Regression.equals(sharedTreeOutput.getModelCategory())) {
-            args.tree_class = null;
-        } else {
-            args.tree_class = sharedTreeOutput._domains[sharedTreeOutput.responseIdx()][treeClass];
-        }
 
         return args;
     }
@@ -298,6 +321,37 @@ public class TreeHandler extends Handler {
             return "RIGHT";
         }
         return null; // No direction
+    }
+
+    private static final XGBoostTreeClass getXGBoostClassIndex(final XGBoostModel xgBoostModel, final String treeClass) {
+        final ModelCategory modelCategory = xgBoostModel._output.getModelCategory();
+        if (treeClass == null && ModelCategory.Regression.equals(modelCategory)) return new XGBoostTreeClass(null, 0);
+        if (treeClass == null && !ModelCategory.Regression.equals(modelCategory)) {
+            throw new IllegalArgumentException("Non-regressional models require tree class specified.");
+        }
+
+        final String[] domain = Objects.requireNonNull(xgBoostModel.model_info()._dataInfoKey.get())
+                ._adaptedFrame.vec(xgBoostModel._parms._response_column).domain();
+        final int treeClassIndex = ArrayUtils.find(domain, treeClass);
+
+        if (ModelCategory.Binomial.equals(modelCategory) && treeClassIndex != 0) {
+            throw new IllegalArgumentException(String.format("For binomial XGBoost model, only one tree for class %d has been built.", domain[0]));
+        }
+
+        if (treeClassIndex < 0)
+            throw new IllegalArgumentException(String.format("No such class '%d' in tree.", treeClass));
+
+        return new XGBoostTreeClass(domain[treeClassIndex], treeClassIndex);
+    }
+
+    private static final class XGBoostTreeClass {
+        private String _name;
+        private int _index;
+
+        public XGBoostTreeClass(String _name, int _index) {
+            this._name = _name;
+            this._index = _index;
+        }
     }
 
     public static class TreeProperties {
