@@ -2,6 +2,7 @@ package water;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.ByteChannel;
@@ -100,6 +101,7 @@ public class TCPReceiverThread extends Thread {
         // Do H2O.Intern in corresponding case branch, we can't do H2O.intern here since it wouldn't work
         // with ExternalFrameHandling ( we don't send the same information there as with the other communication)
         InetAddress inetAddress = sock.socket().getInetAddress();
+        InetSocketAddress inetSocketAddress = (InetSocketAddress) sock.getRemoteAddress();
         // Pass off the TCP connection to a separate reader thread
         switch( chanType ) {
         case TCP_SMALL:
@@ -107,7 +109,7 @@ public class TCPReceiverThread extends Thread {
           new UDP_TCP_ReaderThread(h2o, wrappedSocket).start();
           break;
         case TCP_BIG:
-          new TCPReaderThread(wrappedSocket, new AutoBuffer(wrappedSocket, inetAddress), inetAddress).start();
+          new TCPReaderThread(wrappedSocket, new AutoBuffer(wrappedSocket, ), inetAddress).start();
           break;
         case TCP_EXTERNAL:
           new ExternalFrameHandlerThread(wrappedSocket, new AutoBuffer(wrappedSocket, null)).start();

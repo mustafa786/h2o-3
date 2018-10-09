@@ -146,32 +146,57 @@ public final class H2ONode extends Iced<H2ONode> implements Comparable {
   static private final AtomicInteger UNIQUE = new AtomicInteger(1);
   static H2ONode IDX[] = new H2ONode[1];
 
+  static H2ONode[] getClients(){
+    ArrayList<H2ONode> clients = new ArrayList<>();
+    for( Map.Entry<H2Okey, H2ONode> entry : INTERN.entrySet()){
+      if (entry.getValue()._heartbeat._client) {
+        clients.add(entry.getValue());
+      }
+    }
+    return clients.toArray(new H2ONode[0]);
+  }
+
+  static H2ONode getClientByIPPort(String ipPort){
+    for( Map.Entry<H2Okey, H2ONode> entry : INTERN.entrySet()){
+      if (entry.getValue()._heartbeat._client && entry.getValue().getIpPortString().equals(ipPort)) {
+        return entry.getValue();
+      }
+    }
+    return null;
+  }
+
+  static boolean removeClient(H2ONode node){
+      // Before we remove the Client, stop the sending thread
+      node.stopSendThread();
+      Log.info("Removing client: " + node.toDebugString());
+      return INTERN.remove(node._key, node);
+  }
+
+
   // Create and/or re-use an H2ONode.  Each gets a unique dense index, and is
   // *interned*: there is only one per InetAddress.
-  static private H2ONode intern( H2Okey key ) {
+  static private H2ONode intern(H2Okey key) {
     H2ONode h2o = INTERN.get(key);
-    if( h2o != null){
-      if(h2o._heartbeat._client && h2o._removed_from_cloud){
-        // the client has reconnected, we need to restore the state
-        h2o._removed_from_cloud = false;
-        h2o.startSendThread();
-      }else{
-        return h2o;
-      }
+    if (h2o != null) {
+      return h2o;
     }
     final int idx = UNIQUE.getAndIncrement();
     assert idx < Short.MAX_VALUE;
-    h2o = new H2ONode(key,(short)idx);
-    H2ONode old = INTERN.putIfAbsent(key,h2o);
-    if( old != null ) return old;
-    synchronized(H2O.class) {
-      while( idx >= IDX.length )
-        IDX = Arrays.copyOf(IDX,IDX.length<<1);
+    h2o = new H2ONode(key, (short) idx);
+    H2ONode old = INTERN.putIfAbsent(key, h2o);
+    if (old != null) {
+      return old;
+    }
+    synchronized (H2O.class) {
+      while (idx >= IDX.length) {
+        IDX = Arrays.copyOf(IDX, IDX.length << 1);
+      }
       IDX[idx] = h2o;
     }
     h2o.startSendThread();
     return h2o;
   }
+
   public static H2ONode intern( InetAddress ip, int port ) { return intern(new H2Okey(ip,port)); }
 
   public static H2ONode intern( byte[] bs, int off ) {

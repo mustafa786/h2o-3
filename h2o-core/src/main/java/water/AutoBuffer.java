@@ -127,6 +127,7 @@ public final class AutoBuffer {
     _bb.flip();
     _read = true;               // Reading by default
     _firstPage = true;
+
     // Read Inet from socket, port from the stream, figure out H2ONode
     if(remoteAddress!=null) {
       _h2o = H2ONode.intern(remoteAddress, getPort());
