@@ -3,7 +3,6 @@ package water.parser;
 import water.Futures;
 import water.Iced;
 import water.fvec.AppendableVec;
-import water.fvec.C1Chunk;
 import water.fvec.NewChunk;
 import water.fvec.Vec;
 import water.util.ArrayUtils;
@@ -27,13 +26,24 @@ public class FVecParseWriter extends Iced implements StreamParseWriter {
   ParseErr [] _errs = new ParseErr[0];
   private final Vec.VectorGroup _vg;
   private long _errCnt;
+  int[] _parse_columns_indices;
 
-  public FVecParseWriter(Vec.VectorGroup vg, int cidx, Categorical[] categoricals, byte[] ctypes, int chunkSize, AppendableVec[] avs){
+  // note that if parse_columns_indices==null, it imples all columns are parsed.
+  public FVecParseWriter(Vec.VectorGroup vg, int cidx, Categorical[] categoricals, byte[] ctypes, int chunkSize,
+                         AppendableVec[] avs, int[] parse_columns_indices){
     _ctypes = ctypes;           // Required not-null
     _vecs = avs;
-    _nvs = new NewChunk[avs.length];
-    for(int i = 0; i < avs.length; ++i)
-      _nvs[i] = _vecs[i].chunkForChunkIdx(cidx);
+    if (parse_columns_indices==null) {
+      parse_columns_indices = new int[avs.length];
+      for (int index=0; index < avs.length; index++)
+        parse_columns_indices[index] = index;
+    }
+    _parse_columns_indices = parse_columns_indices;
+
+    int num_parse_columns = parse_columns_indices.length;
+    _nvs = new NewChunk[num_parse_columns];
+    for(int i = 0; i < num_parse_columns; ++i)
+      _nvs[i] = _vecs[_parse_columns_indices[i]].chunkForChunkIdx(cidx);
     _categoricals = categoricals;
     _nCols = avs.length;
     _cidx = cidx;
@@ -75,7 +85,7 @@ public class FVecParseWriter extends Iced implements StreamParseWriter {
     return this;
   }
   @Override public FVecParseWriter nextChunk(){
-    return  new FVecParseWriter(_vg, _cidx+1, _categoricals, _ctypes, _chunkSize, _vecs);
+    return  new FVecParseWriter(_vg, _cidx+1, _categoricals, _ctypes, _chunkSize, _vecs, _parse_columns_indices);
   }
 
   @Override public void newLine() {

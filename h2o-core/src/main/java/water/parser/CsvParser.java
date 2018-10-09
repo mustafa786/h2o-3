@@ -62,7 +62,8 @@ class CsvParser extends Parser {
     boolean decimal = false;
     int fractionDigits = 0;
     int tokenStart = 0; // used for numeric token to backtrace if not successful
-    int colIdx = 0;
+    int columnCounter = 0;
+    int colIdx = _setup._parse_columns_indices[columnCounter];
     byte c = bits[offset];
     // skip comments for the first chunk (or if not a chunk)
     byte[] nonDataLineMarkers = nonDataLineMarkers();
@@ -85,8 +86,8 @@ class CsvParser extends Parser {
     final boolean forceable = dout instanceof FVecParseWriter && ((FVecParseWriter)dout)._ctypes != null && _setup._column_types != null;
 MAIN_LOOP:
     while (true) {
-      final boolean forcedCategorical = forceable && colIdx < _setup._column_types.length && _setup._column_types[colIdx] == Vec.T_CAT;
-      final boolean forcedString = forceable && colIdx < _setup._column_types.length && _setup._column_types[colIdx] == Vec.T_STR;
+      final boolean forcedCategorical = forceable && columnCounter < _setup._parse_columns_indices.length && _setup._column_types[colIdx] == Vec.T_CAT;
+      final boolean forcedString = forceable && columnCounter < _setup._parse_columns_indices.length && _setup._column_types[colIdx] == Vec.T_STR;
 
       switch (state) {
         // ---------------------------------------------------------------------
@@ -166,7 +167,8 @@ MAIN_LOOP:
           str.set(null, 0, 0);
           quotes = 0;
           isAllASCII = true;
-          ++colIdx;
+          columnCounter++;
+          colIdx = _setup._parse_columns_indices[columnCounter];
           state = SEPARATOR_OR_EOL;
           // fallthrough to SEPARATOR_OR_EOL
         // ---------------------------------------------------------------------
@@ -186,11 +188,13 @@ MAIN_LOOP:
           } else if (quoteCount > 2) {
             String err = "Unmatched quote char " + ((char) quotes);
             dout.invalidLine(new ParseWriter.ParseErr(err, cidx, dout.lineNum(), offset + din.getGlobalByteOffset()));
-            colIdx = 0;
+            columnCounter=0;
+            colIdx = _setup._parse_columns_indices[columnCounter];
             quotes = 0;
           } else if (colIdx != 0) {
             dout.newLine();
-            colIdx = 0;
+            columnCounter = 0;
+            colIdx = _setup._parse_columns_indices[columnCounter];
           }
           state = (c == CHAR_CR) ? EXPECT_COND_LF : POSSIBLE_EMPTY_LINE;
           if( !firstChunk )
@@ -233,10 +237,12 @@ MAIN_LOOP:
               break;
           } else if (c == CHAR_SEPARATOR) {
             // we have empty token, store as NaN
-            dout.addInvalidCol(colIdx++);
+            colIdx = _setup._parse_columns_indices[columnCounter++];
+            dout.addInvalidCol(colIdx);
             break;
           } else if (isEOL(c)) {
-            dout.addInvalidCol(colIdx++);
+            colIdx = _setup._parse_columns_indices[columnCounter++];
+            dout.addInvalidCol(colIdx);
             state = EOL;
             continue MAIN_LOOP;
           }
@@ -325,7 +331,8 @@ MAIN_LOOP:
           if (c == CHAR_SEPARATOR && quotes == 0) {
             exp = exp - fractionDigits;
             dout.addNumCol(colIdx,number,exp);
-            ++colIdx;
+            columnCounter++;
+            colIdx = _setup._parse_columns_indices[columnCounter];
             // do separator state here too
             state = WHITESPACE_BEFORE_TOKEN;
             break;
@@ -333,7 +340,8 @@ MAIN_LOOP:
             exp = exp - fractionDigits;
             dout.addNumCol(colIdx,number,exp);
             // do EOL here for speedup reasons
-            colIdx = 0;
+            columnCounter=0;
+            colIdx = _setup._parse_columns_indices[columnCounter];
             dout.newLine();
             state = (c == CHAR_CR) ? EXPECT_COND_LF : POSSIBLE_EMPTY_LINE;
             if( !firstChunk )
@@ -489,7 +497,7 @@ MAIN_LOOP:
       c = bits[offset];
 
     } // end MAIN_LOOP
-    if (colIdx == 0)
+    if (columnCounter == 0)
       dout.rollbackLine();
     // If offset is still validly within the buffer, save it so the next pass
     // can start from there.

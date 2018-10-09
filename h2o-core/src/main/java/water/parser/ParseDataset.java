@@ -696,10 +696,13 @@ public final class ParseDataset {
       final long [] espc = MemoryManager.malloc8(nchunks);
       final byte[] ctypes = localSetup._column_types; // SVMLight only uses numeric types, sparsely represented as a null
       for(int i = 0; i < avs.length; ++i)
-        avs[i] = new AppendableVec(_vg.vecKey(i + _vecIdStart), espc, ctypes==null ? /*SVMLight*/Vec.T_NUM : ctypes[i], chunkOff);
+        avs[i] = new AppendableVec(_vg.vecKey(i + _vecIdStart), espc, ctypes==null ? /*SVMLight*/Vec.T_NUM :
+                ctypes[i], chunkOff);
       return localSetup._parse_type.equals(SVMLight_INFO)
-        ? new SVMLightFVecParseWriter(_vg, _vecIdStart,chunkOff, _parseSetup._chunk_size, avs)
-        : new FVecParseWriter(_vg, chunkOff, categoricals(_cKey, localSetup._number_columns), localSetup._column_types, _parseSetup._chunk_size, avs);
+        ? new SVMLightFVecParseWriter(_vg, _vecIdStart,chunkOff, _parseSetup._chunk_size, avs,
+              _parseSetup._parse_columns_indices)
+        : new FVecParseWriter(_vg, chunkOff, categoricals(_cKey, localSetup._number_columns),
+              localSetup._column_types, _parseSetup._chunk_size, avs, _parseSetup._parse_columns_indices);
     }
 
     // Called once per file
@@ -884,19 +887,20 @@ public final class ParseDataset {
         case "PARQUET":
           Categorical [] categoricals = categoricals(_cKey, _setup._number_columns);
           dout = new FVecParseWriter(_vg,_startChunkIdx + in.cidx(), categoricals, _setup._column_types,
-                  _setup._chunk_size, avs); //TODO: use _setup._domains instead of categoricals
+                  _setup._chunk_size, avs, _setup._parse_columns_indices); //TODO: use _setup._domains instead of categoricals
           break;
         case "SVMLight":
-          dout = new SVMLightFVecParseWriter(_vg, _vecIdStart, in.cidx() + _startChunkIdx, _setup._chunk_size, avs);
+          dout = new SVMLightFVecParseWriter(_vg, _vecIdStart, in.cidx() + _startChunkIdx, _setup._chunk_size,
+                  avs, _setup._parse_columns_indices);
           break;
         case "ORC":  // setup special case for ORC
           Categorical [] orc_categoricals = categoricals(_cKey, _setup._number_columns);
           dout = new FVecParseWriter(_vg, in.cidx() + _startChunkIdx, orc_categoricals, _setup._column_types,
-                  _setup._chunk_size, avs);
+                  _setup._chunk_size, avs, _setup._parse_columns_indices);
           break;
         default: // FIXME: should not be default and creation strategy should be forwarded to ParserProvider
           dout = new FVecParseWriter(_vg, in.cidx() + _startChunkIdx, null, _setup._column_types,
-                  _setup._chunk_size, avs);
+                  _setup._chunk_size, avs, _setup._parse_columns_indices);
           break;
         }
         p.parseChunk(in.cidx(), din, dout);

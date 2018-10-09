@@ -9,7 +9,7 @@ from tests import pyunit_utils
 # I will import the original files and then the zip directory and compare them to see if they are the same.
 
 def import_folder():
-  file1 = h2o.import_file(pyunit_utils.locate("bigdata/laptop/airlinesBillion_7Columns_5GB.csv"), skipped_columns = [0,1])
+  file1 = h2o.import_file(pyunit_utils.locate("bigdata/laptop/airlinesBillion_7Columns_5GB.csv"), skipped_columns = [0,1], col_names=["f1", "f2", "f3", "f4", "f5", "f6", "f7"], header=1)
   file2 = h2o.import_file(pyunit_utils.locate("bigdata/laptop/DGA.csv"))
 
   print("whoa")

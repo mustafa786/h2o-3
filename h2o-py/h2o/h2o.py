@@ -381,7 +381,7 @@ def import_file(path=None, destination_frame=None, parse=True, header=0, sep=Non
         of column names to strings which are to be interpreted as missing values.
     :param pattern: Character string containing a regular expression to match file(s) in the folder if `path` is a
         directory.
-    :param skipped_columns: an integer lists of column indices to skip and not parsed into the final frame from the import file.
+    :param skipped_columns: an integer list of column indices to skip and not parsed into the final frame from the import file.
 
     :returns: a new :class:`H2OFrame` instance.
 
@@ -405,7 +405,7 @@ def import_file(path=None, destination_frame=None, parse=True, header=0, sep=Non
     assert_is_type(col_types, [coltype], {str: coltype}, None)
     assert_is_type(na_strings, [natype], {str: natype}, None)
     assert (skipped_columns==None) or isinstance(skipped_columns, list), \
-        "The skipped_columns should be an list of column names of column indices!"
+        "The skipped_columns should be an list of column names!"
     check_frame_id(destination_frame)
     patharr = path if isinstance(path, list) else [path]
     if any(os.path.split(p)[0] == "~" for p in patharr):
@@ -414,7 +414,7 @@ def import_file(path=None, destination_frame=None, parse=True, header=0, sep=Non
     if not parse:
         return lazy_import(path, pattern)
     else:
-        return H2OFrame()._import_parse(path, pattern, destination_frame, header, sep, col_names, col_types, na_strings)
+        return H2OFrame()._import_parse(path, pattern, destination_frame, header, sep, col_names, col_types, na_strings, skipped_columns)
 
 
 def import_sql_table(connection_url, table, username, password, columns=None, optimize=True):
@@ -503,7 +503,7 @@ def import_sql_select(connection_url, select_query, username, password, optimize
 
 
 def parse_setup(raw_frames, destination_frame=None, header=0, separator=None, column_names=None,
-                column_types=None, na_strings=None):
+                column_types=None, na_strings=None, skipped_columns=None):
     """
     Retrieve H2O's best guess as to what the structure of the data file is.
 
@@ -536,6 +536,7 @@ def parse_setup(raw_frames, destination_frame=None, header=0, separator=None, co
 
     :param na_strings: A list of strings, or a list of lists of strings (one list per column), or a dictionary
         of column names to strings which are to be interpreted as missing values.
+    :param skipped_columns: an integer lists of column indices to skip and not parsed into the final frame from the import file.
 
     :returns: a dictionary containing parse parameters guessed by the H2O backend.
     """
@@ -619,6 +620,13 @@ def parse_setup(raw_frames, destination_frame=None, header=0, separator=None, co
             raise ValueError(
                 "na_strings should be a list, a list of lists (one list per column), or a dictionary of column "
                 "names to strings which are to be interpreted as missing values")
+
+    if skipped_columns is not None:
+        if isinstance(skipped_columns, list):
+            j["skipped_columns"] = []
+            for colidx in skipped_columns:
+                if (colidx < 0): raise ValueError("skipped column index cannot be negative")
+                j["skipped_columns"].append(colidx)
 
     # quote column names and column types also when not specified by user
     if j["column_names"]: j["column_names"] = list(map(quoted, j["column_names"]))
