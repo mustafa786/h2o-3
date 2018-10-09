@@ -1,7 +1,7 @@
 package water.automl.api.schemas3;
 
 
-import ai.h2o.automl.AutoML;
+import ai.h2o.automl.Algo;
 import ai.h2o.automl.AutoMLBuildSpec;
 import hex.schemas.HyperSpaceSearchCriteriaV99;
 import water.api.API;
@@ -117,7 +117,7 @@ public class AutoMLBuildSpecV99 extends SchemaV3<AutoMLBuildSpec, AutoMLBuildSpe
     }
 
     @API(help="A list algorithms to skip during the model-building phase.", values = {"GLM", "DRF", "GBM", "DeepLearning", "StackedEnsemble", "XGBoost"}, direction=API.Direction.INPUT)
-    public AutoML.Algo[] exclude_algos;
+    public Algo[] exclude_algos;
 
   } // class AutoMLBuildModels
 

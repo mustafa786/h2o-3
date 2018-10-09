@@ -128,26 +128,10 @@ public final class AutoML extends Lockable<AutoML> implements TimedH2ORunnable {
   private final static SimpleDateFormat fullTimestampFormat = new SimpleDateFormat("yyyy.MM.dd HH:mm:ss.S");
   private final static SimpleDateFormat timestampFormatForKeys = new SimpleDateFormat("yyyyMMdd_HHmmss");
 
-  // if we need to make the Algo list dynamic, we should just turn this enum into a class...
-  // NOTE: make sure that this is in sync with the exclude option in AutoMLBuildSpecV99
-  public enum Algo implements algo {
-    GLM,
-    DRF,
-    GBM,
-    DeepLearning,
-    StackedEnsemble,
-    XGBoost,
-    ;
-
-    String urlName() {
-      return this.name().toLowerCase();
-    }
-  }
-
   /**
    * for external use only.
-   * Keeping this mapping for customers consuming the Java API directly
-   * @deprecated use {@link Algo} instead
+   * Keeping this mapping for existing users consuming the Java API directly.
+   * @deprecated will be removed in H2O 3.24.x, please use {@link Algo} instead.
    */
   @Deprecated
   public interface algo {
