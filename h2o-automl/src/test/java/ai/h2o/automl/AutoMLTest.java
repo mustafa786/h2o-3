@@ -83,7 +83,7 @@ public class AutoMLTest extends TestUtil {
                          + 2*15;         //SE
       assertEquals(workPlan.remainingWork(), max_total_work);
 
-      autoMLBuildSpec.build_models.exclude_algos = new AutoML.Algo[] {AutoML.Algo.DeepLearning, AutoML.Algo.XGBoost, };
+      autoMLBuildSpec.build_models.exclude_algos = new Algo[] {Algo.DeepLearning, Algo.XGBoost, };
       workPlan = aml.planWork();
 
       assertEquals(workPlan.remainingWork(), max_total_work - (/*DL*/ 1*10+3*20 + /*XGB*/ 3*10+1*100));

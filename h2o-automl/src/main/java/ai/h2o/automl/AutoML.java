@@ -29,6 +29,7 @@ import water.util.ArrayUtils;
 import water.util.IcedHashMapGeneric;
 import water.util.Log;
 
+import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -134,7 +135,7 @@ public final class AutoML extends Lockable<AutoML> implements TimedH2ORunnable {
    * @deprecated will be removed in H2O 3.24.x, please use {@link Algo} instead.
    */
   @Deprecated
-  public interface algo {
+  public interface algo extends Serializable {
     @Deprecated public static final Algo GLM = Algo.GLM;
     @Deprecated public static final Algo DRF = Algo.DRF;
     @Deprecated public static final Algo GBM = Algo.GBM;
@@ -270,7 +271,7 @@ public final class AutoML extends Lockable<AutoML> implements TimedH2ORunnable {
             .end();
 
     if (buildSpec.build_models.exclude_algos != null) {
-      for (Algo algo : (Algo[])buildSpec.build_models.exclude_algos) {
+      for (Algo algo : (Algo[]) buildSpec.build_models.exclude_algos) {
         skipAlgosList = ArrayUtils.append(skipAlgosList, algo);
       }
     }
