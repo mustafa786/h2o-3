@@ -147,15 +147,16 @@ public final class AutoML extends Lockable<AutoML> implements TimedH2ORunnable {
   /**
    * for external use only.
    * Keeping this mapping for customers consuming the Java API directly
+   * @deprecated use {@link Algo} instead
    */
   @Deprecated
   public interface algo {
-    public static final Algo GLM = Algo.GLM;
-    public static final Algo DRF = Algo.DRF;
-    public static final Algo GBM = Algo.GBM;
-    public static final Algo DeepLearning = Algo.DeepLearning;
-    public static final Algo StackedEnsemble = Algo.StackedEnsemble;
-    public static final Algo XGBoost = Algo.XGBoost;
+    @Deprecated public static final Algo GLM = Algo.GLM;
+    @Deprecated public static final Algo DRF = Algo.DRF;
+    @Deprecated public static final Algo GBM = Algo.GBM;
+    @Deprecated public static final Algo DeepLearning = Algo.DeepLearning;
+    @Deprecated public static final Algo StackedEnsemble = Algo.StackedEnsemble;
+    @Deprecated public static final Algo XGBoost = Algo.XGBoost;
   }
 
   private enum JobType {
