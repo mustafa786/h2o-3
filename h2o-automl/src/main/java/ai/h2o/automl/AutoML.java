@@ -130,7 +130,7 @@ public final class AutoML extends Lockable<AutoML> implements TimedH2ORunnable {
 
   // if we need to make the Algo list dynamic, we should just turn this enum into a class...
   // NOTE: make sure that this is in sync with the exclude option in AutoMLBuildSpecV99
-  public enum Algo {
+  public enum Algo implements algo {
     GLM,
     DRF,
     GBM,
@@ -142,6 +142,20 @@ public final class AutoML extends Lockable<AutoML> implements TimedH2ORunnable {
     String urlName() {
       return this.name().toLowerCase();
     }
+  }
+
+  /**
+   * for external use only.
+   * Keeping this mapping for customers consuming the Java API directly
+   */
+  @Deprecated
+  public interface algo {
+    public static final Algo GLM = Algo.GLM;
+    public static final Algo DRF = Algo.DRF;
+    public static final Algo GBM = Algo.GBM;
+    public static final Algo DeepLearning = Algo.DeepLearning;
+    public static final Algo StackedEnsemble = Algo.StackedEnsemble;
+    public static final Algo XGBoost = Algo.XGBoost;
   }
 
   private enum JobType {
@@ -271,7 +285,7 @@ public final class AutoML extends Lockable<AutoML> implements TimedH2ORunnable {
             .end();
 
     if (buildSpec.build_models.exclude_algos != null) {
-      for (Algo algo : buildSpec.build_models.exclude_algos) {
+      for (Algo algo : (Algo[])buildSpec.build_models.exclude_algos) {
         skipAlgosList = ArrayUtils.append(skipAlgosList, algo);
       }
     }
