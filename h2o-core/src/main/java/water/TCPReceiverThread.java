@@ -86,7 +86,7 @@ public class TCPReceiverThread extends Thread {
         }
         bb.flip();
         int chanType = bb.get(); // 1 - small , 2 - big
-        int port = bb.getChar();
+        int nodeId = bb.getChar();
         int sentinel = (0xFF) & bb.get();
         if(sentinel != 0xef) {
           if(H2O.SELF.getSecurityManager().securityEnabled) {
@@ -105,7 +105,7 @@ public class TCPReceiverThread extends Thread {
         // Pass off the TCP connection to a separate reader thread
         switch( chanType ) {
         case TCP_SMALL:
-          H2ONode h2o = H2ONode.intern(inetAddress, port);
+          H2ONode h2o = H2ONode.intern(inetAddress, inetSocketAddress.getPort());
           new UDP_TCP_ReaderThread(h2o, wrappedSocket).start();
           break;
         case TCP_BIG:
@@ -275,7 +275,7 @@ public class TCPReceiverThread extends Thread {
     // being handled during the dump.  Also works for packets from outside the
     // Cloud... because we use Timelines to diagnose Paxos failures.
     int ctrl = ab.getCtrl();
-    ab.getClientID(); // we don't need this information here, read to skip the 2 bytes
+    ab.getNodeUniqueMeta(); // we don't need this information here, read to skip the 2 bytes
     if( ctrl == UDP.udp.timeline.ordinal() ) {
       UDP.udp.timeline._udp.call(ab);
       return;

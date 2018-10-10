@@ -135,7 +135,7 @@ public class UDPRebooted extends UDP {
 
   // Pretty-print bytes 1-15; byte 0 is the udp_type enum
   @Override String print16( AutoBuffer ab ) {
-    ab.getClientID(); // we don't need this information here, read to skip the 2 bytes
+    ab.getNodeUniqueMeta(); // we don't need this information here, read to skip the 2 bytes
     return T.values()[ab.get1()].toString();
   }
 }

@@ -41,6 +41,8 @@ import static water.H2O.OptArgs.SYSTEM_PROP_PREFIX;
  */
 public final class AutoBuffer {
 
+  private static byte CTRL_BYTES = 1;
+  private static byte NODE_ID_BYTES = 2;
   // Maximum size of an array we allow to allocate (the value is designed
   // to mimic the behavior of OpenJDK libraries)
   private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
@@ -114,6 +116,17 @@ public final class AutoBuffer {
 
   static final java.nio.charset.Charset UTF_8 = java.nio.charset.Charset.forName("UTF-8");
 
+
+  /**
+   * Create AutoBuffer prepared to sent multicast message.
+   * @param type type of the request
+   * @return AutoBuffer
+   */
+  static AutoBuffer createMulticastAB(UDP.udp type){
+    return new AutoBuffer(H2O.SELF, type._prior).putUdp(type).put2( (char)H2O.H2O_PORT);
+  }
+
+
   /** Incoming TCP request.  Make a read-mode AutoBuffer from the open Channel,
    *  figure the originating H2ONode from the first few bytes read.
    *
@@ -184,7 +197,8 @@ public final class AutoBuffer {
     _read = true;
     _firstPage = true;
     _chan = null;
-    _h2o = H2ONode.intern(pack.getAddress(), pack.getPort());
+    int port = getSz(CTRL_BYTES + NODE_ID_BYTES + 2).getChar(CTRL_BYTES + NODE_ID_BYTES);
+    _h2o = H2ONode.intern(pack.getAddress(), port);
     _persist = 0;               // No persistance
   }
 
@@ -973,27 +987,28 @@ public final class AutoBuffer {
   // Utility functions to handle common UDP packet tasks.
   // Get the 1st control byte
   int  getCtrl( ) { return getSz(1).get(0)&0xFF; }
-  // Get the port in next 2 bytes
-  int getClientID( ) { return getSz(1+2).getChar(1); }
+  // Get the node information in next 2 bytes
+  int getNodeUniqueMeta( ) { return getSz(1+2).getChar(1); }
   // Get the task# in the next 4 bytes
   int  getTask( ) { return getSz(1+2+4).getInt(1+2); }
   // Get the flag in the next 1 byte
   int  getFlag( ) { return getSz(1+2+4+1).get(1+2+4); }
 
   /**
-   * Write UDP into the ByteBuffer with custom sender's port number
+   * Write UDP into the ByteBuffer with custom sender's information
    *
    * This method sets the ctrl, port, task.
    * Ready to write more bytes afterwards
    *
    * @param type type of the UDP datagram
-   * @param senderPort port of the sender of the datagram
+   * @param nodeUniqueMeta unique metadata telling us the uniqueness of the node and
+   *                       information whether it's client or not
    */
-  AutoBuffer putUdp(UDP.udp type, int senderPort){
+  AutoBuffer putUdp(UDP.udp type, int nodeUniqueMeta){
     assert _bb.position() == 0;
-    putSp(_bb.position()+1+2);
+    putSp(_bb.position() + 1 + 2);
     _bb.put    ((byte)type.ordinal());
-    _bb.putChar((char)senderPort    );
+    _bb.putChar((char)nodeUniqueMeta);
     return this;
   }
 
@@ -1006,16 +1021,19 @@ public final class AutoBuffer {
    * @param type type of the UDP datagram
    */
   AutoBuffer putUdp (UDP.udp type) {
-    return putUdp(type, H2O.H2O_PORT); // Outgoing port is always the sender's (me) port
+    return putUdp(type, calculateNodeUniqueMeta(H2O.SELF));
   }
 
+  public static char calculateNodeUniqueMeta(H2ONode node) {
+    return (char)0;
+  }
   AutoBuffer putTask(UDP.udp type, int tasknum) {
     return putUdp(type).put4(tasknum);
   }
   AutoBuffer putTask(int ctrl, int tasknum) {
     assert _bb.position() == 0;
     putSp(_bb.position()+1+2+4);
-    _bb.put((byte)ctrl).putChar((char)H2O.H2O_PORT).putInt(tasknum);
+    _bb.put((byte)ctrl).putChar(calculateNodeUniqueMeta(H2O.SELF)).putInt(tasknum);
     return this;
   }
 

@@ -70,7 +70,7 @@ public class UDPClientEvent extends UDP {
 
       public void broadcast(H2ONode clientNode) {
         ClientEvent ce = new ClientEvent(this, H2O.SELF._heartbeat, clientNode);
-        ce.write(new AutoBuffer(H2O.SELF, udp.client_event._prior).putUdp(udp.client_event)).close();
+        ce.write(AutoBuffer.createMulticastAB(udp.client_event)).close();
       }
 
     }

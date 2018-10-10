@@ -24,7 +24,7 @@ class FJPacket extends H2OCountedCompleter {
 
   @Override
   public void compute2() {
-    _ab.getClientID(); // we don't need this information here, read to skip the 2 bytes
+    _ab.getNodeUniqueMeta(); // we don't need this information here, read to skip the 2 bytes
     if( _ctrl <= UDP.udp.nack.ordinal() ) {
       AutoBuffer ab = UDP.udp.UDPS[_ctrl]._udp.call(_ab);
       if(ab != null && !ab.isClosed()) ab.close();

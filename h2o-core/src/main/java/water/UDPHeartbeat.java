@@ -21,10 +21,9 @@ class UDPHeartbeat extends UDP {
     return ab;
   }
 
-  static void build_and_multicast( H2O cloud, HeartBeat hb ) {
-    // Paxos.print_debug("send: heartbeat ",cloud._memset);
+  static void build_and_multicast(HeartBeat hb) {
     assert hb._cloud_hash != 0 || hb._client; // Set before send, please
     H2O.SELF._heartbeat = hb;
-    hb.write(new AutoBuffer(H2O.SELF,udp.heartbeat._prior).putUdp(UDP.udp.heartbeat)).close();
+    AutoBuffer.createMulticastAB(udp.heartbeat).close();
   }
 }

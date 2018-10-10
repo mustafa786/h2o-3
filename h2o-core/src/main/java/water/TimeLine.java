@@ -203,7 +203,7 @@ public class TimeLine extends UDP {
         SNAPSHOT = new long[CLOUD.size()][];
         // Broadcast a UDP packet, with the hopes of getting all SnapShots as close
         // as possible to the same point in time.
-        new AutoBuffer(H2O.SELF,udp.timeline._prior).putUdp(udp.timeline).close();
+        AutoBuffer.createMulticastAB(udp.timeline).close();
       }
       // Spin until all snapshots appear
       while( true ) {
@@ -236,7 +236,7 @@ public class TimeLine extends UDP {
 
   // Receive a remote timeline
   static void tcp_call( final AutoBuffer ab ) {
-    ab.getClientID(); // we don't need this information here, read to skip the 2 bytes
+    ab.getNodeUniqueMeta(); // we don't need this information here, read to skip the 2 bytes
     long[] snap = ab.getA8();
     int idx = CLOUD.nidx(ab._h2o);
     if (idx >= 0 && idx < SNAPSHOT.length)

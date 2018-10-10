@@ -129,7 +129,7 @@ public class HeartBeatThread extends Thread {
 
       // Announce what Cloud we think we are in.
       // Publish our health as well.
-      UDPHeartbeat.build_and_multicast(cloud, hb);
+      UDPHeartbeat.build_and_multicast(hb);
 
       // If we have no internet connection, then the multicast goes
       // nowhere and we never receive a heartbeat from ourselves!
