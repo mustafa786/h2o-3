@@ -109,7 +109,7 @@ public class TCPReceiverThread extends Thread {
           new UDP_TCP_ReaderThread(h2o, wrappedSocket).start();
           break;
         case TCP_BIG:
-          new TCPReaderThread(wrappedSocket, new AutoBuffer(wrappedSocket, ), inetAddress).start();
+          new TCPReaderThread(wrappedSocket, new AutoBuffer(wrappedSocket, inetSocketAddress), inetSocketAddress).start();
           break;
         case TCP_EXTERNAL:
           new ExternalFrameHandlerThread(wrappedSocket, new AutoBuffer(wrappedSocket, null)).start();
@@ -133,9 +133,8 @@ public class TCPReceiverThread extends Thread {
   static class TCPReaderThread extends Thread {
     public ByteChannel _sock;
     public AutoBuffer _ab;
-    private final InetAddress address;
-
-    public TCPReaderThread(ByteChannel sock, AutoBuffer ab, InetAddress address) {
+    private final InetSocketAddress address;
+    public TCPReaderThread(ByteChannel sock, AutoBuffer ab, InetSocketAddress address) {
       super("TCP-"+ab._h2o+"-"+(ab._h2o._tcp_readers++));
       _sock = sock;
       _ab = ab;
