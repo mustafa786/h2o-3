@@ -275,7 +275,7 @@ public class TCPReceiverThread extends Thread {
     // being handled during the dump.  Also works for packets from outside the
     // Cloud... because we use Timelines to diagnose Paxos failures.
     int ctrl = ab.getCtrl();
-    ab.getPort(); // skip the port bytes
+    ab.getClientID(); // we don't need this information here, read to skip the 2 bytes
     if( ctrl == UDP.udp.timeline.ordinal() ) {
       UDP.udp.timeline._udp.call(ab);
       return;

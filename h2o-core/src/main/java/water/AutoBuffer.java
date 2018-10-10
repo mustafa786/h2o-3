@@ -974,7 +974,7 @@ public final class AutoBuffer {
   // Get the 1st control byte
   int  getCtrl( ) { return getSz(1).get(0)&0xFF; }
   // Get the port in next 2 bytes
-  int  getPort( ) { return getSz(1+2).getChar(1); }
+  int getClientID( ) { return getSz(1+2).getChar(1); }
   // Get the task# in the next 4 bytes
   int  getTask( ) { return getSz(1+2+4).getInt(1+2); }
   // Get the flag in the next 1 byte
