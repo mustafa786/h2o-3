@@ -24,6 +24,6 @@ class UDPHeartbeat extends UDP {
   static void build_and_multicast(HeartBeat hb) {
     assert hb._cloud_hash != 0 || hb._client; // Set before send, please
     H2O.SELF._heartbeat = hb;
-    AutoBuffer.createMulticastAB(udp.heartbeat).close();
+    AutoBuffer.createForMulticastWrite(udp.heartbeat).close();
   }
 }

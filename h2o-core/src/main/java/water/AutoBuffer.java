@@ -122,10 +122,34 @@ public final class AutoBuffer {
    * @param type type of the request
    * @return AutoBuffer
    */
-  static AutoBuffer createMulticastAB(UDP.udp type){
-    return new AutoBuffer(H2O.SELF, type._prior).putUdp(type).put2( (char)H2O.H2O_PORT);
+  static AutoBuffer createForMulticastWrite(UDP.udp type){
+    return new AutoBuffer(H2O.SELF, type._prior).putUdp(type).put2((char)H2O.H2O_PORT);
   }
 
+  /**
+   * Create AutoBuffer prepared to read multicast messages
+   * @param pack datagram packet
+   * @return AutoBuffer
+   */
+  static AutoBuffer createForMulticastRead(DatagramPacket pack){
+    return new AutoBuffer(pack);
+  }
+
+  static AutoBuffer createForUnicastWrite(H2ONode target, UDP.udp type){
+    return new AutoBuffer(target, type._prior).putUdp(type);
+  }
+
+  static AutoBuffer createForUnicastWrite(H2ONode target, UDP.udp type, int task){
+    return new AutoBuffer(target, type._prior).putTask(type, task);
+  }
+
+  static AutoBuffer createForUnicastWrite(H2ONode target, UDP.udp type, int task, byte priority) {
+    return new AutoBuffer(target, priority).putTask(type, task);
+  }
+
+  static AutoBuffer reuseForUnicastWrite(AutoBuffer ab, UDP.udp type, int task) {
+    return ab.clearForWriting(type._prior).putTask(type, task);
+  }
 
   /** Incoming TCP request.  Make a read-mode AutoBuffer from the open Channel,
    *  figure the originating H2ONode from the first few bytes read.
@@ -190,14 +214,16 @@ public final class AutoBuffer {
   }
 
   /** Read from UDP multicast.  Same as the byte[]-read variant, except there is an H2O. */
-  AutoBuffer( DatagramPacket pack ) {
+  private AutoBuffer( DatagramPacket pack ) {
     _size = pack.getLength();
     _bb = ByteBuffer.wrap(pack.getData(), 0, pack.getLength()).order(ByteOrder.nativeOrder());
     _bb.position(0);
     _read = true;
     _firstPage = true;
     _chan = null;
+    byte ctrl = getSz(CTRL_BYTES).get(0);
     int port = getSz(CTRL_BYTES + NODE_ID_BYTES + 2).getChar(CTRL_BYTES + NODE_ID_BYTES);
+    Log.info("PORT " + port + " ctrl byte " + ctrl + " " + pack.getAddress().toString());
     _h2o = H2ONode.intern(pack.getAddress(), port);
     _persist = 0;               // No persistance
   }
@@ -1020,20 +1046,18 @@ public final class AutoBuffer {
    *
    * @param type type of the UDP datagram
    */
-  AutoBuffer putUdp (UDP.udp type) {
+  AutoBuffer putUdp(UDP.udp type) {
     return putUdp(type, calculateNodeUniqueMeta(H2O.SELF));
   }
 
   public static char calculateNodeUniqueMeta(H2ONode node) {
     return (char)0;
   }
-  AutoBuffer putTask(UDP.udp type, int tasknum) {
-    return putUdp(type).put4(tasknum);
-  }
-  AutoBuffer putTask(int ctrl, int tasknum) {
+
+  private AutoBuffer putTask(UDP.udp type, int tasknum) {
     assert _bb.position() == 0;
     putSp(_bb.position()+1+2+4);
-    _bb.put((byte)ctrl).putChar(calculateNodeUniqueMeta(H2O.SELF)).putInt(tasknum);
+    _bb.put((byte)type.ordinal()).putChar(calculateNodeUniqueMeta(H2O.SELF)).putInt(tasknum);
     return this;
   }
 

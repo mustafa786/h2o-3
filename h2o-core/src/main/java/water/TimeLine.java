@@ -203,7 +203,7 @@ public class TimeLine extends UDP {
         SNAPSHOT = new long[CLOUD.size()][];
         // Broadcast a UDP packet, with the hopes of getting all SnapShots as close
         // as possible to the same point in time.
-        AutoBuffer.createMulticastAB(udp.timeline).close();
+        AutoBuffer.createForMulticastWrite(udp.timeline).close();
       }
       // Spin until all snapshots appear
       while( true ) {
@@ -230,7 +230,7 @@ public class TimeLine extends UDP {
         TimeLine.class.notify();
       }
     } else // Send timeline to remote
-      new AutoBuffer(ab._h2o,udp.timeline._prior).putUdp(UDP.udp.timeline).putA8(a).close();
+    AutoBuffer.createForUnicastWrite(ab._h2o, udp.timeline).putA8(a).close();
     return null;
   }
 
